@@ -89,13 +89,12 @@ if st.button("Analyze") or auto_refresh:
         input_vector = vectorizer.transform([user_input])
         probability = model.predict_proba(input_vector)[0][1]
 
-        # ================= ADVANCED RULE ENGINE =================
+        # ================= RULE ENGINE =================
         urls = re.findall(r'(https?://\S+)', user_input)
 
         risk_score = probability * 40
         reasons = []
 
-        # -------- URL INTELLIGENCE --------
         if urls:
             risk_score += 15
             reasons.append("Contains external link")
@@ -121,7 +120,6 @@ if st.button("Analyze") or auto_refresh:
                 risk_score += 10
                 reasons.append("Too many subdomains")
 
-        # -------- CREDENTIAL ATTACK --------
         credential_patterns = [
             "password reset","verify account","login attempt",
             "confirm password","reset your password","account verification"
@@ -132,7 +130,6 @@ if st.button("Analyze") or auto_refresh:
                 risk_score += 12
                 reasons.append(f"Credential attack: {p}")
 
-        # -------- FINANCIAL FRAUD --------
         financial_patterns = [
             "payment failed","invoice","refund","transaction",
             "bank alert","update payment","billing issue"
@@ -143,7 +140,6 @@ if st.button("Analyze") or auto_refresh:
                 risk_score += 10
                 reasons.append(f"Financial fraud: {p}")
 
-        # -------- SOCIAL ENGINEERING --------
         social_patterns = [
             "urgent","act now","limited time","immediate action",
             "account suspended","respond immediately"
@@ -154,7 +150,6 @@ if st.button("Analyze") or auto_refresh:
                 risk_score += 8
                 reasons.append(f"Social engineering: {p}")
 
-        # -------- PSYCHOLOGICAL --------
         psychological_patterns = [
             "you won","lottery","reward","prize",
             "free gift","exclusive offer"
@@ -165,17 +160,14 @@ if st.button("Analyze") or auto_refresh:
                 risk_score += 9
                 reasons.append(f"Psychological trigger: {p}")
 
-        # -------- NORMALIZE --------
         risk_score = max(0, min(risk_score, 100))
         trust_score = 100 - risk_score
 
-        # ================= HYBRID DECISION =================
         if probability > 0.7 or risk_score > 65:
             prediction = 1
         else:
             prediction = 0
 
-        # ================= LEVEL =================
         if risk_score > 70:
             level = "HIGH"
         elif risk_score > 40:
@@ -183,7 +175,6 @@ if st.button("Analyze") or auto_refresh:
         else:
             level = "LOW"
 
-        # ================= STORE =================
         entry = {
             "Time": datetime.datetime.now(),
             "Email": user_input[:60],
@@ -254,6 +245,65 @@ if st.button("Analyze") or auto_refresh:
             df = pd.DataFrame(st.session_state.history)
             st.dataframe(df)
 
+# ================= COMPLIANCE ENGINE =================
+        st.subheader("📜 Compliance Impact (Advanced)")
+
+        compliance_issues = []
+        compliance_score = 0
+
+        # OWASP
+        if "password" in text or "login" in text:
+            compliance_issues.append("OWASP A2: Authentication Failure")
+            compliance_score += 20
+
+        if "http" in text or "link" in text:
+            compliance_issues.append("OWASP A10: SSRF / Phishing Link Abuse")
+            compliance_score += 15
+
+        if "urgent" in text:
+            compliance_issues.append("OWASP A8: Social Engineering Risk")
+            compliance_score += 10
+
+        if "payment" in text:
+            compliance_issues.append("OWASP A5: Security Misconfiguration")
+            compliance_score += 15
+
+        # ISO
+        if "login" in text:
+            compliance_issues.append("ISO 27001 A.9: Access Control")
+            compliance_score += 15
+
+        if "link" in text:
+            compliance_issues.append("ISO 27001 A.13: Network Security")
+            compliance_score += 10
+
+        if "urgent" in text:
+            compliance_issues.append("ISO 27001 A.7: Human Risk")
+            compliance_score += 10
+
+        # DPDP
+        if any(k in text for k in ["password","otp","bank"]):
+            compliance_issues.append("DPDP: Personal Data Breach Risk")
+            compliance_score += 20
+
+        if any(k in text for k in ["email","phone"]):
+            compliance_issues.append("DPDP: PII Exposure Risk")
+            compliance_score += 10
+
+        compliance_issues = list(set(compliance_issues))
+
+        for issue in compliance_issues:
+            st.write("•", issue)
+
+        if compliance_score > 60:
+            comp_level = "HIGH"
+        elif compliance_score > 30:
+            comp_level = "MEDIUM"
+        else:
+            comp_level = "LOW"
+
+        st.metric("Compliance Risk Level", comp_level)
+
         # ================= ACTION =================
         st.subheader("🛡️ Recommended Actions")
 
@@ -266,7 +316,7 @@ if st.button("Analyze") or auto_refresh:
         else:
             st.write("No action needed")
 
-# ================= SAFE REAL-TIME =================
+# ================= REAL-TIME =================
 if auto_refresh:
     st.info("🔄 Real-time monitoring active")
     time.sleep(3)
